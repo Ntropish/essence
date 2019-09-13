@@ -1,0 +1,13 @@
+{
+  "name": "essence",
+  "version": "0.0.1",
+  "description": "",
+  "main": "blockApp.js",
+  "dependencies": {
+    "ramda": "^0.26.1"
+  },
+  "devDependencies": {},
+  "scripts": {},
+  "author": "ntropish@gmail.com",
+  "license": "MIT"
+}
