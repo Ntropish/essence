@@ -1,48 +1,52 @@
-const listeners = new WeakMap()
-
 export default createCtx = (fn, parent = null) => {
-  const watch = fn => {
-    // let cursor = ctx
-    // while (cursor && !cursor.hasOwnProperty(property)) {
-    //   cursor = Object.getPrototypeOf(cursor)
-    // }
-    // if (cursor) {
-    //   // property located in the chain
+  // contexts use a prototype chain to provide their enclosing contexts
+  const link = Object.create(parent, {})
 
-    // }
-    ctx[property].watchers.push('')
+  let getLinkByProp = prop => {
+    if (prop in link) {
+      let cursor = link
+      while (cursor && !cursor.hasOwnProperty(prop)) {
+        cursor = Object.getPrototypeOf(cursor)
+      }
+      if (cursor) {
+        return cursor[prop]
+      }
+    }
   }
 
-  // contexts use a prototype chain to provide their enclosing contexts
-  const ctx = Object.create(parent, {
-    watch,
-  })
+  let handlers = {}
 
-  const ctxInterface = new Proxy(ctx, {
-    // gets a property from the context
-    get(target, prop, receiver) {
-      if (prop in ctx) {
-        return ctx[prop].value
-      } else {
-        const output = value => (target[prop] = value)
-        return fn => {
-          const newCtx = createCtx(fn, ctx)
-          // if (
-        }
-      }
+  let output
+
+  const ctxInterface = {
+    read(prop) {
+      return link[prop]
     },
-  })
+    createLink(fn) {
+      link[prop] = createCtx(fn, link)
+    },
+    setOutput(value) {
+      const oldValue = value
+      output = value
+      Object.values(handlers).forEach(handler => handler(value, oldValue))
+    },
+  }
 
-  let value
-  let setValue = newValue => (value = newValue)
-  let output = fn(ctxInterface, setValue)
+  output = fn(ctxInterface)
+
+  let nextChangeHandlerId = 0
+  const onChange = fn => {
+    const id = nextChangeHandlerId++
+    handlers[id] = fn
+    return () => {
+      delete handlers[id]
+    }
+  }
+
   return {
-    value,
+    get value() {
+      return output
+    },
     onChange,
   }
-}
-
-const onChange = fn => {
-  const oldListeners = listeners.get(ctx[prop]) || []
-  listeners.set(ctx[prop], [fn, oldListeners])
 }
