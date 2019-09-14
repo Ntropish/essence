@@ -1,57 +1,48 @@
 const listeners = new WeakMap()
 
-export default createCtx = (parent = null) => {
+export default createCtx = (fn, parent = null) => {
+  const watch = fn => {
+    // let cursor = ctx
+    // while (cursor && !cursor.hasOwnProperty(property)) {
+    //   cursor = Object.getPrototypeOf(cursor)
+    // }
+    // if (cursor) {
+    //   // property located in the chain
+
+    // }
+    ctx[property].watchers.push('')
+  }
+
   // contexts use a prototype chain to provide their enclosing contexts
-  const ctx = Object.create(parent, { _listeners: {} })
-  return new Proxy(ctx, {
+  const ctx = Object.create(parent, {
+    watch,
+  })
+
+  const ctxInterface = new Proxy(ctx, {
     // gets a property from the context
     get(target, prop, receiver) {
       if (prop in ctx) {
-        const value = ctx[prop]
-        const onChange = fn => {
-          const oldListeners = listeners.get(ctx[prop]) || []
-          listeners.set(ctx[prop], [fn, oldListeners])
-        }
-        return [value, onChange]
+        return ctx[prop].value
       } else {
         const output = value => (target[prop] = value)
         return fn => {
-          const newCtx = createCtx(ctx)
-          const implicitOutput = fn(ctx, output)
+          const newCtx = createCtx(fn, ctx)
           // if (
         }
       }
     },
   })
+
+  let value
+  let setValue = newValue => (value = newValue)
+  let output = fn(ctxInterface, setValue)
+  return {
+    value,
+    onChange,
+  }
 }
 
-// const isNode = typeof module !== 'undefined' && module.exports
-// console.assert(isNode, 'Must be run in node')
-
-//   // NODE IMPLEMENTATION
-//   const EventEmitter = require('events')
-//   const emitter = new EventEmitter()
-//   // Using platform specific implementations to keep it simple
-//   // ---
-
-// export default ctx = (parent = null) => {
-//   // contexts use a prototype chain to provide their enclosing contexts
-//   const context = Object.create(parent, { _listeners: {} })
-
-//   return new Proxy(() => {}, {
-//     // defines a property on this context
-//     set(target, prop, value, receiver) {
-//       Object.defineProperty(context, prop, value)
-//       return true
-//     },
-//     // gets a property from the context
-//     get(target, prop, receiver) {
-//       return context[prop]
-//     },
-//     // creates a child context
-//     apply(target, thisArg, args) {
-//       return ctx(context)
-//       // (it was a a miracle)
-//     },
-//   })
-// }
+const onChange = fn => {
+  const oldListeners = listeners.get(ctx[prop]) || []
+  listeners.set(ctx[prop], [fn, oldListeners])
+}
