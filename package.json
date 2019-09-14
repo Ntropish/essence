@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "description": "",
   "main": "blockApp.js",
+  "type": "module",
   "dependencies": {
+    "events": "^3.0.0",
     "ramda": "^0.26.1"
   },
   "devDependencies": {},

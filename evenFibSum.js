@@ -30,8 +30,10 @@ module.exports = function($) {
     actual: $.sum([2, 99, -5]),
     expected: 96,
   })
-  const fibs = $.fib($.count)
-  const evenFibs = fibs.filter(n => n % 2 === 0)
-  const sum = $.sum(evenFibs)
-  return sum
+
+  return count => {
+    const fibs = $.fib(count)
+    const evenFibs = fibs.filter(n => n % 2 === 0)
+    return $.sum(evenFibs)
+  }
 }

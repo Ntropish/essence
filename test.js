@@ -24,16 +24,37 @@ const assert = ({ given, should, actual, expected }) => {
   }
 }
 
-const evenFibSum = require('./evenFibSum.js')
+const computed = $ => {
+  return fn => {
+    const result = fn($)
+  }
+}
+const watch = $ => {
+  return fn => {}
+}
 
-// This use case is could be simplified but
+const sumEvenFibs = require('./evenFibSum.js')
+
+// this use case is could be simplified but
 // I want to exercise accessing functions
 // from lower contexts and writing asserts for them
 $($ => {
-  $.assert = assert
-  $.log = console.log.bind(console)
+  // these are dependencies of evenFibSum
   $.fib = fib
   $.sum = R.sum
   $.count = 10
-  $.log($(evenFibSum))
+
+  // these are to be standard
+  // $.log = console.log.bind(console)
+  const output = []
+  $.log = (...args) => output.push(args)
+  $.assert = assert
+
+  // sumEvenFibs needs it's own context
+  // so it can pretend it does important things
+  $.sumEvenFibs = $(sumEvenFibs)
+
+  // logs result every time it changes
+  $.result = $.computed($.sumEvenFibs($.count))
+  $.watch($ => $.log($.result))
 })

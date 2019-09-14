@@ -6,7 +6,18 @@ function isFunction(functionToCheck) {
 
 const node = Symbol('Node')
 
-function createContext(value, parent = null) {
+const nativeMembers = {
+  computed(fn) {
+    const cached = null
+    const updateCache = () => (cached = fn(this))
+    updateCache()
+    return {
+      get: () => cached,
+    }
+  },
+}
+
+function createContext(value, parent = nativeMembers) {
   const context = Object.create(parent, {})
   const interface = new Proxy(() => {}, {
     set: function writeContext(target, prop, value, receiver) {
