@@ -1,52 +1,43 @@
-export const context = Symbol('context')
+import createScope from './scope.js'
 
-function createContext(fn, parent = null) {
-  const output = value => {
-    currentValue = value
+const set = Symbol('set')
+
+const scopeToSns = new WeakMap()
+
+export default function sns(fn) {
+  const createSnsScope = fn => scopeHandle => {
+    const snsHandle = new Proxy(() => {}, {
+      get(target, prop, receiver) {
+        if (prop === 'output') {
+          return scopeHandle.output
+        } else if (prop === 'set') {
+          return value => ({
+            [set]: true,
+            value,
+          })
+        } else {
+          return scopeHandle.read(prop).value
+        }
+      },
+      set(target, prop, value, receiver) {
+        if (prop === 'input') {
+          scopeHandle.setInput(value)
+        } else if (typeof value === 'object' && value[set]) {
+          const readProp = scopeHandle.read(prop)
+          readProp.value = value.value
+        } else {
+          scopeHandle.scope(prop, createSnsScope(value))
+        }
+        return true
+      },
+      apply(target, thisArg, [prop, handler]) {
+        const unsubscribe = scopeHandle.read(prop).subscribe(handler)
+        // split for clarity
+        return unsubscribe
+      },
+    })
+    return fn(snsHandle)
   }
-  const context = Object.create(parent, { output })
-  const $ = new Proxy(() => {}, {
-    set: function writeContext(target, prop, value, receiver) {
-      console.assert(
-        !(prop in context),
-        `Property ${prop} already set on context`,
-      )
-      const valueIsUnit = typeof value === 'object' && value && value[unit]
-      const descriptor = valueIsUnit ? value : createVariableUnit(value)
-      Object.defineProperty(context, prop, {
-        get: () => currentValue,
-      })
 
-      return true
-    },
-    get: function readContext(target, prop, receiver) {
-      // the often unused "in" here is so it searches the prototype chain
-      console.assert(prop in context, `Property must exist in context`)
-      return context[prop]
-    },
-    apply(target, thisArg, args) {
-      return createContext(args[0], context)
-    },
-  })
-
-  const fnIsFunction = fn && {}.toString.call(fn) === '[object Function]'
-
-  console.assert(fnIsFunction, `Corrupted sns, ${value} not a function`)
-
-  const currentValue = fn()
-  return value($)
+  return createScope(createSnsScope(fn))
 }
-
-const createVariableUnit = value => {
-  return {
-    get: () => value,
-    set(newValue) {
-      value = newValue
-      return true
-    },
-    // units are identified by this mark
-    [unit]: true,
-  }
-}
-
-export { createContext as $ }
