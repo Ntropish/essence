@@ -17,7 +17,7 @@ export default function sns(fn) {
               [set]: true,
               value,
             })
-            // TODO: Add prefix to built in props
+            // TODO: add prefix to built-in props
           } else if (prop === 'subscribe') {
             return (prop, handler) => {
               const unsubscribe = scopeHandle.read(prop).subscribe(handler)
@@ -45,4 +45,56 @@ export default function sns(fn) {
   }
 
   return createScope(createSnsScope(fn))
+}
+
+// basic props needed for most programs
+export const standard = $ => {
+  $.con = function conDef($) {
+    return function con(value) {
+      return $ => {
+        $.input = () => console.error('cannot change a constant')
+        return value
+      }
+    }
+  }
+
+  // mut defines mutables
+  $.mut = $.con(function mut(value) {
+    return $ => {
+      $.input = $.output
+      return value
+    }
+  })
+
+  $.watch = $.con(function watch(fn) {
+    return $ => {
+      let reads = {}
+      // skimmer is to intercept all "get"s during fn run
+      const skimmer = new Proxy($, {
+        get(target, prop, receiver) {
+          const value = $[prop]
+          reads[prop] = { value }
+          return value
+        },
+      })
+      // this is called to initialize or rerun the watch
+      const run = () => {
+        // clear all data
+        Object.values(reads).forEach(read => read.unsubscribe())
+        reads = {}
+
+        fn(skimmer)
+
+        // wait to subscribe until after so it doesn't re-trigger
+        Object.entries(reads).forEach(([prop, read]) => {
+          reads[prop].unsubscribe = $.subscribe(prop, (newValue, oldValue) => {
+            if (newValue !== read.value) {
+              run()
+            }
+          })
+        })
+      }
+      run()
+    }
+  })
 }

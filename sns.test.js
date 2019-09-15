@@ -1,83 +1,33 @@
-import sns from './sns.js'
+import sns, { standard } from './sns.js'
 
 const outputs = []
 sns(async function main($) {
-  // con defines constants on the scope
-  $.con = function conDef($) {
-    return function con(value) {
-      return $ => {
-        $.input = () => console.error('cannot change a constant')
-        return value
-      }
-    }
-  }
+  // main ^^^ is a definition because it accepts
+  // and uses a definition handle "$"
 
-  // mut defines mutables
-  $.mut = $.con(function mut(value) {
-    return $ => {
-      $.input = $.output
-      return value
-    }
-  })
+  // "import" other definitions by running them against
+  // the provided handle
+  standard($)
 
+  $.a = $.mut(0)
+  /* 
+  | $.mut(0) |
+  this function call creates a definition. a def is a function
+  that describes how a scope should behave.
+  
+  | $.a = def |
+  this creates a subscope on this scope using the definition
+  */
+
+  // all side effects should be as close to the top as possible
+  // so low level definitions can be used anywhere
   $.log = $.con(console.log.bind(console))
 
-  // $.watch = $.con(function watch(fn) {
-  //   return
-  // })
-
-  $.mutable = $.mut(0)
-
-  $.watcher = $ => {
-    let reads = {}
-    const fn = $ => {
-      $.log($.mutable)
-    }
-    // skimmer is to intercept all "get"s during fn run
-    const skimmer = new Proxy($, {
-      get(target, prop, receiver) {
-        const value = $[prop]
-        reads[prop] = { value }
-        return value
-      },
-    })
-    // this is called to initialize or rerun the watch
-    const run = () => {
-      // clear all data
-      Object.values(reads).forEach(read => read.unsubscribe())
-      reads = {}
-
-      fn(skimmer)
-
-      // wait to subscribe until after so it doesn't re-trigger
-      Object.entries(reads).forEach(([prop, read]) => {
-        reads[prop].unsubscribe = $.subscribe(prop, (newValue, oldValue) => {
-          if (newValue !== read.value) {
-            run()
-          }
-        })
-      })
-
-      console.log('run complete - watching:', reads)
-    }
-    run()
-  }
-
-  $.a = $ => 'a string 1'
-  $.b = function defineB($) {
-    // setting to a property creates a new sub-scope
-    $.a = $ => 'a string 2'
-    $.c = $ => {
-      $.a = $ => 'a string 5'
-
-      $.subscribe('mutable', (a, b) => {
-        $.log($.a)
-        $.log(a)
-      })
-    }
-  }
+  $.watch($ => {
+    $.log($.a)
+  })($)
 
   // TODO: change set to mutate
-  $.mutable = $.set(1)
-  $.mutable = $.set(2)
+  $.a = $.set(1)
+  $.a = $.set(2)
 })
