@@ -23,11 +23,23 @@ sns(async function main($) {
   // so low level definitions can be used anywhere
   $.log = $.con(console.log.bind(console))
 
+  // log a every time it changes
   $.watch($ => {
     $.log($.a)
   })($)
 
-  // TODO: change set to mutate
-  $.a = $.set(1)
-  $.a = $.set(2)
+  $.first = $.mut('justin')
+  $.last = $.con('stone')
+
+  // computed prop by returning a value
+  $['full name'] = $.watch($ => $.first + ' ' + $.last)
+
+  // log a every time it changes
+  $.watch($ => {
+    $.log($['full name'])
+  })($)
+
+  $.a = $.input(1)
+  $.first = $.input('rustin')
+  $.a = $.input(2)
 })

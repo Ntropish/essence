@@ -2,8 +2,6 @@ import createScope from './scope.js'
 
 const set = Symbol('set')
 
-const scopeToSns = new WeakMap()
-
 export default function sns(fn) {
   const createSnsScope = fn => scopeHandle => {
     const snsHandle = new Proxy(
@@ -12,7 +10,7 @@ export default function sns(fn) {
         get(target, prop, receiver) {
           if (prop === 'output') {
             return scopeHandle.output
-          } else if (prop === 'set') {
+          } else if (prop === 'input') {
             return value => ({
               [set]: true,
               value,
@@ -83,7 +81,8 @@ export const standard = $ => {
         Object.values(reads).forEach(read => read.unsubscribe())
         reads = {}
 
-        fn(skimmer)
+        const returnValue = fn(skimmer)
+        if (returnValue !== undefined) $.output(returnValue)
 
         // wait to subscribe until after so it doesn't re-trigger
         Object.entries(reads).forEach(([prop, read]) => {
